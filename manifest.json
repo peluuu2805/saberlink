@@ -1,0 +1,20 @@
+{
+  "name": "SaberLink — Control de Sable Láser",
+  "short_name": "SaberLink",
+  "description": "Control BLE de sable láser estilo Star Wars",
+  "start_url": "/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#060008",
+  "theme_color": "#060008",
+  "lang": "es",
+  "categories": ["utilities", "entertainment"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "screenshots": [
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

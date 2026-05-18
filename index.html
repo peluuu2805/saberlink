@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#060008">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>SABERLINK</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --red:    #FF1E1E;
+  --blue:   #00CFFF;
+  --gold:   #FFB800;
+  --bg:     #060008;
+  --bg2:    #0d000f;
+  --panel:  rgba(10,0,18,0.85);
+  --glass:  rgba(255,255,255,0.04);
+  --saber:  #00FF40;
+  --glow:   rgba(0,255,64,0.4);
+  --text:   #d0c8e0;
+  --dim:    #5a4870;
+  --fhead:  'Orbitron',monospace;
+  --fbody:  'Rajdhani',sans-serif;
+}
+
+html,body{height:100%;width:100%;background:var(--bg);color:var(--text);
+  font-family:var(--fbody);font-size:16px;overflow-x:hidden;overscroll-behavior:none}
+
+/* ── CANVAS DE FONDO ── */
+#bg-canvas{position:fixed;inset:0;z-index:0;pointer-events:none}
+
+/* ── SCANLINES ── */
+body::after{content:'';position:fixed;inset:0;z-index:1;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.1) 3px,rgba(0,0,0,0.1) 4px);
+  pointer-events:none}
+
+/* ── VIGNETTE ── */
+body::before{content:'';position:fixed;inset:0;z-index:1;
+  background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,0.7) 100%);
+  pointer-events:none}
+
+/* ── WRAPPER ── */
+#app{position:relative;z-index:2;min-height:100vh;display:flex;
+  flex-direction:column;max-width:500px;margin:0 auto;padding:0 14px 28px}
+
+/* ════════════════════════════════
+   PANTALLA DE CONEXIÓN
+════════════════════════════════ */
+#screen-connect{flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:0;padding:20px 0}
+
+.connect-hero{width:100%;max-width:360px;margin-bottom:28px;filter:drop-shadow(0 0 40px rgba(120,80,255,0.3))}
+
+.connect-brand{font-family:var(--fhead);font-size:2.6rem;font-weight:900;
+  letter-spacing:0.18em;text-align:center;margin-bottom:6px;
+  background:linear-gradient(135deg,#fff 0%,var(--blue) 50%,#fff 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+  text-shadow:none;
+  filter:drop-shadow(0 0 30px var(--blue))}
+
+.connect-sub{font-size:0.75rem;letter-spacing:0.35em;color:var(--dim);
+  text-align:center;margin-bottom:36px;text-transform:uppercase}
+
+#btn-connect{
+  width:100%;max-width:300px;padding:18px 0;
+  font-family:var(--fhead);font-size:0.8rem;font-weight:700;
+  letter-spacing:0.25em;text-transform:uppercase;
+  color:#000;border:none;cursor:pointer;
+  background:linear-gradient(90deg,var(--blue),#7b5fff,var(--blue));
+  background-size:200% auto;
+  clip-path:polygon(18px 0%,100% 0%,calc(100% - 18px) 100%,0% 100%);
+  animation:shimmer 3s linear infinite;
+  box-shadow:0 0 40px rgba(0,180,255,0.5),0 0 80px rgba(0,100,255,0.2);
+  transition:transform 0.15s}
+#btn-connect:hover{transform:scale(1.03)}
+#btn-connect:active{transform:scale(0.96)}
+#btn-connect:disabled{opacity:0.4;cursor:not-allowed;animation:none}
+@keyframes shimmer{to{background-position:200% center}}
+
+.connect-warning{font-size:0.62rem;color:var(--dim);text-align:center;
+  margin-top:20px;letter-spacing:0.08em;line-height:1.7}
+
+/* ════════════════════════════════
+   HEADER
+════════════════════════════════ */
+header{display:flex;align-items:center;justify-content:space-between;
+  padding:14px 0 10px;border-bottom:1px solid rgba(120,80,255,0.25)}
+
+.logo{font-family:var(--fhead);font-size:1.3rem;font-weight:900;
+  letter-spacing:0.18em;
+  background:linear-gradient(90deg,var(--blue),#fff);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 12px var(--blue))}
+
+#conn-status{display:flex;align-items:center;gap:7px;
+  font-size:0.6rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--dim)}
+#conn-dot{width:8px;height:8px;border-radius:50%;background:var(--dim);
+  box-shadow:0 0 6px var(--dim);transition:all 0.4s}
+#conn-dot.connected{background:#00ff88;box-shadow:0 0 12px #00ff88}
+#conn-dot.connecting{background:var(--gold);box-shadow:0 0 12px var(--gold);animation:blink 0.8s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* ════════════════════════════════
+   PANTALLA PRINCIPAL
+════════════════════════════════ */
+#screen-main{display:none;flex-direction:column;gap:14px;padding-top:14px}
+#screen-main.visible{display:flex;animation:fadeUp 0.5s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+
+/* ── SABER STAGE HORIZONTAL ── */
+.saber-stage{
+  position:relative;
+  background:linear-gradient(135deg,rgba(10,0,25,0.95),rgba(5,0,15,0.98));
+  border:1px solid rgba(120,80,255,0.2);
+  border-top:2px solid rgba(120,80,255,0.5);
+  padding:22px 16px 18px;
+  overflow:hidden}
+
+.saber-stage::before{content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 100%,rgba(120,80,255,0.08) 0%,transparent 70%);
+  pointer-events:none}
+
+/* Corner brackets */
+.saber-stage::after{content:'';position:absolute;
+  top:-1px;right:-1px;width:28px;height:28px;
+  border-top:2px solid rgba(120,80,255,0.6);
+  border-right:2px solid rgba(120,80,255,0.6)}
+
+.stage-corner-bl{position:absolute;bottom:-1px;left:-1px;width:28px;height:28px;
+  border-bottom:2px solid rgba(120,80,255,0.6);
+  border-left:2px solid rgba(120,80,255,0.6)}
+
+.saber-h-wrap{display:flex;align-items:center;gap:0;height:44px;margin-bottom:14px}
+
+/* HILT */
+.hilt-body{
+  flex-shrink:0;width:72px;height:28px;
+  background:linear-gradient(180deg,#9a9a9a 0%,#3a3a3a 30%,#6a6a6a 50%,#2a2a2a 70%,#888 100%);
+  border-radius:3px 0 0 3px;
+  position:relative;
+  box-shadow:0 2px 8px rgba(0,0,0,0.8),inset 0 1px 0 rgba(255,255,255,0.2)}
+
+.hilt-body::before{content:'';position:absolute;top:8px;left:4px;right:12px;height:2px;
+  background:rgba(0,0,0,0.4);border-radius:1px}
+.hilt-body::after{content:'';position:absolute;top:16px;left:4px;right:12px;height:2px;
+  background:rgba(255,255,255,0.15);border-radius:1px}
+
+.hilt-guard{
+  flex-shrink:0;width:10px;height:44px;
+  background:linear-gradient(180deg,#777,#333,#999,#444,#666);
+  border-radius:2px;
+  box-shadow:2px 0 6px rgba(0,0,0,0.6)}
+
+.hilt-emitter{
+  flex-shrink:0;width:14px;height:22px;
+  background:linear-gradient(180deg,#aaa,#555,#aaa);
+  border-radius:0 2px 2px 0;
+  box-shadow:inset -2px 0 4px rgba(0,0,0,0.5)}
+
+/* BLADE */
+#saber-blade-h{
+  flex:1;height:10px;
+  border-radius:0 4px 4px 0;
+  background:linear-gradient(90deg,rgba(255,255,255,0.9),var(--saber) 30%,var(--saber));
+  box-shadow:0 0 6px var(--saber),0 0 18px var(--saber),0 0 40px var(--glow),0 0 80px var(--glow);
+  transition:all 0.5s;
+  position:relative;
+  animation:sabFlicker 0.08s infinite}
+
+#saber-blade-h::after{content:'';position:absolute;inset:0;
+  border-radius:inherit;
+  background:linear-gradient(90deg,rgba(255,255,255,0.8),transparent 40%)}
+
+#saber-blade-h.off{
+  background:#1a1a1a;
+  box-shadow:none;
+  animation:none}
+
+@keyframes sabFlicker{
+  0%,100%{opacity:1} 91%{opacity:0.93} 93%{opacity:1} 96%{opacity:0.9} 98%{opacity:1}}
+
+.stage-labels{display:flex;align-items:center;justify-content:space-between}
+.stage-label{font-family:var(--fhead);font-size:0.55rem;letter-spacing:0.3em;
+  color:var(--dim);text-transform:uppercase}
+#saber-state-text{color:var(--blue);text-shadow:0 0 10px var(--blue);
+  font-family:var(--fhead);font-size:0.65rem;letter-spacing:0.2em;
+  transition:all 0.4s}
+
+/* ── BOTÓN DE PODER ── */
+.power-row{display:flex;justify-content:center;gap:0}
+#btn-power{
+  width:100%;padding:20px 0;
+  font-family:var(--fhead);font-size:0.9rem;font-weight:700;
+  letter-spacing:0.3em;text-transform:uppercase;
+  background:transparent;cursor:pointer;
+  border:2px solid var(--blue);color:var(--blue);
+  clip-path:polygon(20px 0%,100% 0%,calc(100% - 20px) 100%,0% 100%);
+  box-shadow:0 0 20px rgba(0,207,255,0.25),inset 0 0 30px rgba(0,207,255,0.05);
+  text-shadow:0 0 12px var(--blue);
+  transition:all 0.3s;position:relative;overflow:hidden}
+#btn-power::before{content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(0,207,255,0.06),transparent);
+  transform:translateX(-100%);transition:transform 0.5s}
+#btn-power:hover::before{transform:translateX(100%)}
+#btn-power.saber-on{
+  border-color:var(--red);color:var(--red);
+  box-shadow:0 0 30px rgba(255,30,30,0.35),inset 0 0 30px rgba(255,30,30,0.07);
+  text-shadow:0 0 12px var(--red)}
+#btn-power:active{transform:scaleY(0.94)}
+
+/* ── PANELES ── */
+.panel{background:var(--panel);border:1px solid rgba(120,80,255,0.18);
+  padding:16px;position:relative;backdrop-filter:blur(4px)}
+
+.panel::before,.panel::after{content:'';position:absolute;
+  width:16px;height:16px;border-color:rgba(120,80,255,0.5);border-style:solid;opacity:0.9}
+.panel::before{top:-1px;left:-1px;border-width:2px 0 0 2px}
+.panel::after{bottom:-1px;right:-1px;border-width:0 2px 2px 0}
+
+.panel-title{font-family:var(--fhead);font-size:0.58rem;letter-spacing:0.35em;
+  color:rgba(180,150,255,0.8);text-transform:uppercase;margin-bottom:14px;
+  display:flex;align-items:center;gap:10px}
+.panel-title::after{content:'';flex:1;height:1px;
+  background:linear-gradient(90deg,rgba(120,80,255,0.4),transparent)}
+.panel-title svg{opacity:0.7}
+
+/* ── CRISTALES ── */
+.crystal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.crystal-btn{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:6px;padding:12px 4px 10px;
+  background:rgba(0,0,0,0.5);
+  border:1px solid rgba(255,255,255,0.07);
+  cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden}
+.crystal-btn::before{content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,transparent 40%,rgba(255,255,255,0.02));pointer-events:none}
+.crystal-btn:active{transform:scale(0.93)}
+.crystal-btn.active{border-color:var(--crystal-color,#fff);
+  box-shadow:0 0 20px var(--crystal-color,#fff),inset 0 0 20px rgba(255,255,255,0.04)}
+
+/* Emblema de personaje (SVG inline) */
+.crystal-emblem{width:36px;height:36px;
+  filter:drop-shadow(0 0 8px var(--crystal-color,#fff));
+  transition:filter 0.3s}
+.crystal-btn.active .crystal-emblem{filter:drop-shadow(0 0 18px var(--crystal-color,#fff))}
+
+.crystal-name{font-family:var(--fhead);font-size:0.55rem;font-weight:700;
+  letter-spacing:0.1em;color:#fff;text-transform:uppercase}
+.crystal-char{font-size:0.52rem;color:var(--dim);letter-spacing:0.04em}
+
+/* ── COLOR LIBRE ── */
+.custom-row{display:flex;align-items:center;gap:8px;
+  padding-top:10px;border-top:1px solid rgba(255,255,255,0.05)}
+.custom-row label{font-size:0.6rem;letter-spacing:0.1em;color:var(--dim);
+  text-transform:uppercase;white-space:nowrap}
+#custom-color-picker{flex:1;height:34px;border:1px solid rgba(120,80,255,0.3);
+  background:none;cursor:pointer;padding:2px;border-radius:2px}
+#btn-apply{padding:8px 14px;font-family:var(--fhead);font-size:0.58rem;
+  font-weight:700;letter-spacing:0.1em;background:transparent;
+  border:1px solid rgba(120,80,255,0.5);color:rgba(180,150,255,0.9);
+  cursor:pointer;transition:all 0.2s;white-space:nowrap;clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%)}
+#btn-apply:hover{background:rgba(120,80,255,0.2);border-color:rgba(180,150,255,0.8)}
+
+/* ── PACKS DE SONIDO ── */
+.pack-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pack-btn{
+  display:flex;flex-direction:column;align-items:flex-start;gap:5px;
+  padding:12px;border:1px solid rgba(255,255,255,0.07);
+  background:rgba(0,0,0,0.5);cursor:pointer;
+  transition:all 0.2s;position:relative;overflow:hidden}
+.pack-emblem{width:32px;height:32px;margin-bottom:2px;opacity:0.8;transition:all 0.2s}
+.pack-btn.active .pack-emblem{opacity:1;filter:drop-shadow(0 0 8px var(--pack-glow,#fff))}
+.pack-btn.active{border-color:var(--pack-border,rgba(120,80,255,0.6));
+  background:var(--pack-bg,rgba(120,80,255,0.08));
+  box-shadow:0 0 16px var(--pack-shadow,rgba(120,80,255,0.2))}
+.pack-btn:active{transform:scale(0.96)}
+.pack-name{font-family:var(--fhead);font-size:0.58rem;letter-spacing:0.1em;
+  color:#fff;text-transform:uppercase}
+.pack-desc{font-size:0.56rem;color:var(--dim)}
+.pack-badge{display:none;font-size:0.48rem;letter-spacing:0.15em;
+  color:var(--pack-glow,#fff);text-transform:uppercase;margin-top:1px}
+.pack-btn.active .pack-badge{display:block}
+
+/* ── BARRA DE ESTADO ── */
+.status-bar{display:flex;align-items:center;justify-content:space-between;
+  padding:10px 0;font-size:0.58rem;letter-spacing:0.1em;
+  color:var(--dim);border-top:1px solid rgba(120,80,255,0.15)}
+.status-item{display:flex;align-items:center;gap:6px}
+.status-dot{width:5px;height:5px;border-radius:50%;
+  background:rgba(120,80,255,0.8);box-shadow:0 0 6px rgba(120,80,255,0.6);
+  animation:pulse 2.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:80px;left:50%;
+  transform:translateX(-50%) translateY(16px);
+  background:rgba(8,0,20,0.97);
+  border:1px solid rgba(120,80,255,0.5);
+  color:rgba(200,180,255,0.95);padding:10px 24px;
+  font-family:var(--fhead);font-size:0.62rem;letter-spacing:0.2em;text-transform:uppercase;
+  opacity:0;transition:all 0.3s;pointer-events:none;white-space:nowrap;z-index:200;
+  clip-path:polygon(10px 0%,100% 0%,calc(100% - 10px) 100%,0% 100%)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="apple-mobile-web-app-title" content="SaberLink">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(() => console.log('SW OK'))
+          .catch(e => console.log('SW error', e));
+      });
+    }
+  </script>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<div id="app">
+
+<!-- ═══ PANTALLA DE CONEXIÓN ═══ -->
+<div id="screen-connect">
+
+  <!-- Dos sables cruzados SVG -->
+  <svg class="connect-hero" viewBox="0 0 360 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Nebula glow background -->
+    <ellipse cx="180" cy="110" rx="150" ry="80" fill="url(#nebula)" opacity="0.35"/>
+    <!-- Sable azul (de izquierda a derecha, inclinado) -->
+    <!-- Blade glow blue -->
+    <line x1="20" y1="200" x2="280" y2="30" stroke="#00CFFF" stroke-width="12" stroke-linecap="round" opacity="0.15"/>
+    <line x1="20" y1="200" x2="280" y2="30" stroke="#00CFFF" stroke-width="6" stroke-linecap="round" opacity="0.3"/>
+    <line x1="20" y1="200" x2="280" y2="30" stroke="#80E8FF" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="20" y1="200" x2="280" y2="30" stroke="white" stroke-width="1" stroke-linecap="round" opacity="0.8"/>
+    <!-- Hilt azul -->
+    <rect x="5" y="188" width="40" height="10" rx="2" fill="url(#hiltBlue)" transform="rotate(-22 25 193)"/>
+    <!-- Sable rojo (de derecha a izquierda, inclinado) -->
+    <line x1="340" y1="200" x2="80" y2="30" stroke="#FF1E1E" stroke-width="12" stroke-linecap="round" opacity="0.15"/>
+    <line x1="340" y1="200" x2="80" y2="30" stroke="#FF1E1E" stroke-width="6" stroke-linecap="round" opacity="0.3"/>
+    <line x1="340" y1="200" x2="80" y2="30" stroke="#FF8080" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="340" y1="200" x2="80" y2="30" stroke="white" stroke-width="1" stroke-linecap="round" opacity="0.8"/>
+    <!-- Hilt rojo -->
+    <rect x="315" y="188" width="40" height="10" rx="2" fill="url(#hiltRed)" transform="rotate(22 335 193)"/>
+    <!-- Chispa central -->
+    <circle cx="180" cy="115" r="18" fill="white" opacity="0.9"/>
+    <circle cx="180" cy="115" r="30" fill="white" opacity="0.3"/>
+    <circle cx="180" cy="115" r="50" fill="url(#spark)" opacity="0.5"/>
+    <!-- Rayos de chispa -->
+    <line x1="180" y1="90" x2="180" y2="75" stroke="white" stroke-width="1.5" opacity="0.8"/>
+    <line x1="180" y1="140" x2="180" y2="155" stroke="white" stroke-width="1.5" opacity="0.8"/>
+    <line x1="155" y1="115" x2="140" y2="115" stroke="white" stroke-width="1.5" opacity="0.8"/>
+    <line x1="205" y1="115" x2="220" y2="115" stroke="white" stroke-width="1.5" opacity="0.8"/>
+    <line x1="163" y1="98" x2="153" y2="88" stroke="white" stroke-width="1" opacity="0.6"/>
+    <line x1="197" y1="98" x2="207" y2="88" stroke="white" stroke-width="1" opacity="0.6"/>
+    <line x1="163" y1="132" x2="153" y2="142" stroke="white" stroke-width="1" opacity="0.6"/>
+    <line x1="197" y1="132" x2="207" y2="142" stroke="white" stroke-width="1" opacity="0.6"/>
+    <defs>
+      <radialGradient id="nebula" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#6030ff"/>
+        <stop offset="100%" stop-color="#0000ff" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="spark" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#ffffff"/>
+        <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+      </radialGradient>
+      <linearGradient id="hiltBlue" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#555"/>
+        <stop offset="50%" stop-color="#bbb"/>
+        <stop offset="100%" stop-color="#444"/>
+      </linearGradient>
+      <linearGradient id="hiltRed" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#555"/>
+        <stop offset="50%" stop-color="#bbb"/>
+        <stop offset="100%" stop-color="#444"/>
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <div class="connect-brand">SABERLINK</div>
+  <div class="connect-sub">Sistema de control Kyber — v3.1</div>
+
+  <button id="btn-connect" onclick="connectBLE()">▶&nbsp;&nbsp;INICIAR CONEXIÓN</button>
+
+  <div class="connect-warning">
+    Requiere Chrome en Android · Web Bluetooth<br>
+    Mantén el sable encendido antes de conectar
+  </div>
+
+</div><!-- /screen-connect -->
+
+<!-- ═══ PANTALLA PRINCIPAL ═══ -->
+<div id="screen-main">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">SABER<span style="color:#fff">LINK</span></div>
+    <div id="conn-status">
+      <div id="conn-dot"></div>
+      <span id="conn-label">DESCONECTADO</span>
+    </div>
+  </header>
+
+  <!-- SABLE HORIZONTAL -->
+  <div class="saber-stage">
+    <div class="stage-corner-bl"></div>
+    <div class="saber-h-wrap">
+      <div class="hilt-body"></div>
+      <div class="hilt-guard"></div>
+      <div class="hilt-emitter"></div>
+      <div id="saber-blade-h" class="off"></div>
+    </div>
+    <div class="stage-labels">
+      <span class="stage-label">ESTADO: <span id="saber-state-text">INACTIVO</span></span>
+      <span class="stage-label" id="color-label">— SIN COLOR —</span>
+    </div>
+  </div>
+
+  <!-- ENCENDIDO / APAGADO -->
+  <div class="power-row">
+    <button id="btn-power" onclick="togglePower()">⬡ &nbsp;ACTIVAR SABLE&nbsp; ⬡</button>
+  </div>
+
+  <!-- PANEL CRISTALES -->
+  <div class="panel">
+    <div class="panel-title">
+      <svg width="12" height="12" viewBox="0 0 12 12"><polygon points="6,0 12,6 6,12 0,6" fill="rgba(180,150,255,0.8)"/></svg>
+      Cristal Kyber
+    </div>
+    <div class="crystal-grid" id="crystal-grid"></div>
+    <div class="custom-row">
+      <label>Custom</label>
+      <input type="color" id="custom-color-picker" value="#00ff40">
+      <button id="btn-apply" onclick="applyCustomColor()">APLICAR</button>
+    </div>
+  </div>
+
+  <!-- PANEL SONIDO -->
+  <div class="panel">
+    <div class="panel-title">
+      <svg width="12" height="12" viewBox="0 0 12 12"><circle cx="6" cy="6" r="5" stroke="rgba(180,150,255,0.8)" stroke-width="1.5" fill="none"/><circle cx="6" cy="6" r="2" fill="rgba(180,150,255,0.8)"/></svg>
+      Perfil de Sonido
+    </div>
+    <div class="pack-grid" id="pack-grid"></div>
+  </div>
+
+  <!-- STATUS BAR -->
+  <div class="status-bar">
+    <div class="status-item"><div class="status-dot"></div><span>BLE</span></div>
+    <span id="status-device">SableLaser</span>
+    <span id="status-time">--:--</span>
+  </div>
+
+</div><!-- /screen-main -->
+</div><!-- /app -->
+
+<div id="toast"></div>
+
+<!-- ═══════════════════════════════
+     SVG EMBLEMAS DE PERSONAJES
+═══════════════════════════════ -->
+<svg style="display:none">
+  <defs>
+    <!-- OBI-WAN / JEDI AZUL: Orden Jedi -->
+    <symbol id="emb-jedi" viewBox="0 0 36 36">
+      <circle cx="18" cy="18" r="15" stroke="#005FFF" stroke-width="1.5" fill="none"/>
+      <circle cx="18" cy="18" r="8" stroke="#005FFF" stroke-width="1" fill="none" opacity="0.6"/>
+      <line x1="18" y1="3" x2="18" y2="33" stroke="#005FFF" stroke-width="1.5"/>
+      <line x1="3" y1="18" x2="33" y2="18" stroke="#005FFF" stroke-width="1.5"/>
+      <line x1="7" y1="7" x2="29" y2="29" stroke="#005FFF" stroke-width="0.8" opacity="0.5"/>
+      <line x1="29" y1="7" x2="7" y2="29" stroke="#005FFF" stroke-width="0.8" opacity="0.5"/>
+      <circle cx="18" cy="18" r="3" fill="#005FFF"/>
+    </symbol>
+    <!-- VADER / SITH ROJO: Símbolo Sith -->
+    <symbol id="emb-sith" viewBox="0 0 36 36">
+      <polygon points="18,2 34,32 2,32" stroke="#FF0000" stroke-width="1.5" fill="none"/>
+      <polygon points="18,10 28,28 8,28" stroke="#FF0000" stroke-width="1" fill="none" opacity="0.6"/>
+      <circle cx="18" cy="22" r="4" fill="#FF0000"/>
+      <line x1="18" y1="2" x2="18" y2="14" stroke="#FF0000" stroke-width="2"/>
+    </symbol>
+    <!-- MACE WINDU: Cristal morado -->
+    <symbol id="emb-mace" viewBox="0 0 36 36">
+      <polygon points="18,2 22,14 34,14 24,22 28,34 18,26 8,34 12,22 2,14 14,14" stroke="#9400D3" stroke-width="1.5" fill="none"/>
+      <circle cx="18" cy="18" r="5" fill="#9400D3"/>
+    </symbol>
+    <!-- LUKE: Alianza Rebelde -->
+    <symbol id="emb-luke" viewBox="0 0 36 36">
+      <circle cx="18" cy="18" r="15" stroke="#00FF40" stroke-width="1.5" fill="none"/>
+      <!-- Pájaro estelar simplificado -->
+      <path d="M18 6 L26 16 L32 14 L24 22 L28 30 L18 24 L8 30 L12 22 L4 14 L10 16 Z"
+            stroke="#00FF40" stroke-width="1.2" fill="none"/>
+      <circle cx="18" cy="18" r="3" fill="#00FF40"/>
+    </symbol>
+    <!-- AHSOKA: Cian -->
+    <symbol id="emb-ahsoka" viewBox="0 0 36 36">
+      <!-- Montrals de Ahsoka simplificados -->
+      <ellipse cx="18" cy="10" rx="6" ry="9" stroke="#00FFFF" stroke-width="1.5" fill="none"/>
+      <ellipse cx="10" cy="8" rx="3" ry="7" stroke="#00FFFF" stroke-width="1" fill="none" transform="rotate(-15 10 8)"/>
+      <ellipse cx="26" cy="8" rx="3" ry="7" stroke="#00FFFF" stroke-width="1" fill="none" transform="rotate(15 26 8)"/>
+      <circle cx="18" cy="22" r="5" stroke="#00FFFF" stroke-width="1.5" fill="none"/>
+      <circle cx="18" cy="22" r="2" fill="#00FFFF"/>
+    </symbol>
+    <!-- REY: Dorado -->
+    <symbol id="emb-rey" viewBox="0 0 36 36">
+      <!-- Sable de personal de Rey -->
+      <rect x="16" y="2" width="4" height="28" rx="2" stroke="#FFD700" stroke-width="1.2" fill="none"/>
+      <rect x="10" y="14" width="16" height="3" rx="1" fill="#FFD700" opacity="0.8"/>
+      <rect x="13" y="10" width="10" height="3" rx="1" stroke="#FFD700" stroke-width="1" fill="none"/>
+      <path d="M18 30 L14 34 L18 32 L22 34 Z" fill="#FFD700"/>
+    </symbol>
+  </defs>
+</svg>
+
+<script>
+// ═══════════════════════════════
+// BLE CONFIG
+// ═══════════════════════════════
+const BLE_SERVICE        = '4fafc201-1fb5-459e-8fcc-c5c9c331914b';
+const BLE_CHARACTERISTIC = 'beb5483e-36e1-4688-b7f5-ea07361b26a8';
+
+let bleDevice=null, bleChar=null;
+let saberIsOn=false, activePack=1, activeColorHex='#00FF40';
+
+// ═══════════════════════════════
+// DATOS
+// ═══════════════════════════════
+const CRYSTALS = [
+  { name:'Jedi',      char:'Obi-Wan', hex:'#005FFF', emblem:'emb-jedi'  },
+  { name:'Sith',      char:'Vader',   hex:'#FF0000', emblem:'emb-sith'  },
+  { name:'Maestro',   char:'Mace',    hex:'#9400D3', emblem:'emb-mace'  },
+  { name:'Rebelde',   char:'Luke',    hex:'#00FF40', emblem:'emb-luke'  },
+  { name:'Ahsoka',    char:'Togruta', hex:'#00FFFF', emblem:'emb-ahsoka'},
+  { name:'Nobleza',   char:'Rey',     hex:'#FFD700', emblem:'emb-rey'   },
+];
+
+const PACKS = [
+  { id:1, name:'JEDI TEMPLE',  desc:'Clásico y noble',    cmd:'PACK:1',
+    color:'#005FFF', bg:'rgba(0,95,255,0.1)',  shadow:'rgba(0,95,255,0.25)',  emblem:'emb-jedi' },
+  { id:2, name:'LADO OSCURO',  desc:'Grave y oscuro',     cmd:'PACK:2',
+    color:'#FF1E1E', bg:'rgba(255,30,30,0.1)', shadow:'rgba(255,30,30,0.25)', emblem:'emb-sith' },
+  { id:3, name:'CLONE WARS',   desc:'Agresivo y rápido',  cmd:'PACK:3',
+    color:'#00FF40', bg:'rgba(0,255,64,0.08)', shadow:'rgba(0,255,64,0.2)',   emblem:'emb-luke' },
+  { id:4, name:'MANDALORIANO', desc:'Etéreo y cristalino',cmd:'PACK:4',
+    color:'#FFD700', bg:'rgba(255,215,0,0.08)',shadow:'rgba(255,215,0,0.2)',  emblem:'emb-rey'  },
+];
+
+// ═══════════════════════════════
+// BUILD UI
+// ═══════════════════════════════
+function buildCrystals() {
+  const g = document.getElementById('crystal-grid');
+  CRYSTALS.forEach((c,i) => {
+    const btn = document.createElement('button');
+    btn.className = 'crystal-btn' + (i===3?' active':'');
+    btn.style.setProperty('--crystal-color', c.hex);
+    btn.innerHTML = `
+      <svg class="crystal-emblem" viewBox="0 0 36 36"><use href="#${c.emblem}"/></svg>
+      <div class="crystal-name">${c.name}</div>
+      <div class="crystal-char">${c.char}</div>`;
+    btn.onclick = () => {
+      document.querySelectorAll('.crystal-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      applyColor(c.hex);
+    };
+    g.appendChild(btn);
+  });
+}
+
+function buildPacks() {
+  const g = document.getElementById('pack-grid');
+  PACKS.forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'pack-btn' + (p.id===1?' active':'');
+    btn.style.setProperty('--pack-glow',   p.color);
+    btn.style.setProperty('--pack-border', p.color);
+    btn.style.setProperty('--pack-bg',     p.bg);
+    btn.style.setProperty('--pack-shadow', p.shadow);
+    btn.innerHTML = `
+      <svg class="pack-emblem" viewBox="0 0 36 36"><use href="#${p.emblem}"/></svg>
+      <div class="pack-name">${p.name}</div>
+      <div class="pack-desc">${p.desc}</div>
+      <div class="pack-badge">▶ ACTIVO</div>`;
+    btn.onclick = () => {
+      document.querySelectorAll('.pack-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      activePack = p.id;
+      sendCommand(p.cmd);
+      showToast('Perfil: ' + p.name);
+    };
+    g.appendChild(btn);
+  });
+}
+
+// ═══════════════════════════════
+// COLOR
+// ═══════════════════════════════
+function applyCustomColor() {
+  const hex = document.getElementById('custom-color-picker').value;
+  document.querySelectorAll('.crystal-btn').forEach(b=>b.classList.remove('active'));
+  applyColor(hex);
+}
+
+function applyColor(hex) {
+  activeColorHex = hex;
+  const blade = document.getElementById('saber-blade-h');
+  if (!blade.classList.contains('off')) {
+    blade.style.background = `linear-gradient(90deg,rgba(255,255,255,0.9),${hex} 30%,${hex})`;
+    blade.style.boxShadow  = `0 0 6px ${hex},0 0 18px ${hex},0 0 40px ${hex}88,0 0 80px ${hex}44`;
+  }
+  document.documentElement.style.setProperty('--saber', hex);
+  document.getElementById('color-label').textContent = hex.toUpperCase();
+  if (bleChar) sendCommand(hex);
+}
+
+// ═══════════════════════════════
+// POWER
+// ═══════════════════════════════
+function togglePower() {
+  if (!bleChar) { showToast('SIN CONEXIÓN BLE'); return; }
+  saberIsOn = !saberIsOn;
+  sendCommand(saberIsOn ? 'ON' : 'OFF');
+  updateSaberUI(saberIsOn);
+  if (saberIsOn) setTimeout(()=>applyColor(activeColorHex), 120);
+}
+
+function updateSaberUI(on) {
+  const blade = document.getElementById('saber-blade-h');
+  const btn   = document.getElementById('btn-power');
+  const state = document.getElementById('saber-state-text');
+  if (on) {
+    blade.classList.remove('off');
+    btn.textContent = '⬡   DESACTIVAR SABLE   ⬡';
+    btn.classList.add('saber-on');
+    state.textContent = 'ACTIVO';
+    state.style.color = activeColorHex;
+    state.style.textShadow = `0 0 12px ${activeColorHex}`;
+  } else {
+    blade.classList.add('off');
+    blade.style.background = '';
+    blade.style.boxShadow  = '';
+    btn.textContent = '⬡   ACTIVAR SABLE   ⬡';
+    btn.classList.remove('saber-on');
+    state.textContent = 'INACTIVO';
+    state.style.color = 'var(--blue)';
+    state.style.textShadow = '0 0 10px var(--blue)';
+  }
+}
+
+// ═══════════════════════════════
+// BLE
+// ═══════════════════════════════
+async function connectBLE() {
+  if (!navigator.bluetooth) {
+    alert('Usa Chrome en Android. Web Bluetooth no funciona en iOS ni Firefox.');
+    return;
+  }
+  const btn=document.getElementById('btn-connect');
+  const dot=document.getElementById('conn-dot');
+  const lbl=document.getElementById('conn-label');
+  btn.disabled=true; dot.className='connecting'; lbl.textContent='BUSCANDO...';
+  try {
+    bleDevice = await navigator.bluetooth.requestDevice({
+      filters:[{name:'SableLaser'}], optionalServices:[BLE_SERVICE]});
+    lbl.textContent='CONECTANDO...';
+    bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
+    const server  = await bleDevice.gatt.connect();
+    const service = await server.getPrimaryService(BLE_SERVICE);
+    bleChar        = await service.getCharacteristic(BLE_CHARACTERISTIC);
+    dot.className='connected';
+    lbl.textContent=bleDevice.name||'SABLE';
+    document.getElementById('status-device').textContent=bleDevice.name||'SableLaser';
+    document.getElementById('screen-connect').style.display='none';
+    document.getElementById('screen-main').classList.add('visible');
+    showToast('ENLACE ESTABLECIDO');
+  } catch(e) {
+    dot.className=''; lbl.textContent='DESCONECTADO'; btn.disabled=false;
+    if (e.name!=='NotFoundError') showToast('ERROR DE CONEXIÓN');
+  }
+}
+
+function onDisconnected() {
+  bleChar=null; saberIsOn=false;
+  document.getElementById('conn-dot').className='';
+  document.getElementById('conn-label').textContent='DESCONECTADO';
+  document.getElementById('screen-connect').style.display='flex';
+  document.getElementById('screen-main').classList.remove('visible');
+  document.getElementById('btn-connect').disabled=false;
+  showToast('ENLACE PERDIDO');
+}
+
+async function sendCommand(cmd) {
+  if (!bleChar) return;
+  try { await bleChar.writeValue(new TextEncoder().encode(cmd)); }
+  catch(e) { showToast('ERROR DE TRANSMISIÓN'); }
+}
+
+// ═══════════════════════════════
+// TOAST & RELOJ
+// ═══════════════════════════════
+let toastT=null;
+function showToast(m) {
+  const t=document.getElementById('toast');
+  t.textContent=m; t.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2200);
+}
+setInterval(()=>{
+  document.getElementById('status-time').textContent=new Date().toTimeString().slice(0,5);
+},1000);
+
+// ═══════════════════════════════
+// FONDO: ESTRELLAS + NEBULOSA
+// ═══════════════════════════════
+function initBG() {
+  const canvas=document.getElementById('bg-canvas');
+  const ctx=canvas.getContext('2d');
+  let W,H,stars=[],nebula=[];
+
+  function resize() {
+    W=canvas.width=window.innerWidth;
+    H=canvas.height=window.innerHeight;
+    stars=Array.from({length:200},()=>({
+      x:Math.random()*W, y:Math.random()*H,
+      r:Math.random()*1.6+0.2,
+      a:Math.random(), d:(Math.random()-0.5)*0.004,
+      c:Math.random()<0.1?'rgba(255,180,180,':'rgba(180,200,255,'}));
+    nebula=Array.from({length:6},()=>({
+      x:Math.random()*W, y:Math.random()*H,
+      rx:120+Math.random()*200, ry:80+Math.random()*120,
+      hue:Math.random()<0.5?260:300,
+      a:0.02+Math.random()*0.04}));
+  }
+
+  function draw() {
+    ctx.clearRect(0,0,W,H);
+    // Nebulae
+    nebula.forEach(n=>{
+      const g=ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,n.rx);
+      g.addColorStop(0,`hsla(${n.hue},80%,25%,${n.a})`);
+      g.addColorStop(1,'transparent');
+      ctx.save(); ctx.scale(1,n.ry/n.rx);
+      ctx.fillStyle=g; ctx.beginPath();
+      ctx.arc(n.x,n.y*(n.rx/n.ry),n.rx,0,Math.PI*2);
+      ctx.fill(); ctx.restore();
+    });
+    // Stars
+    stars.forEach(s=>{
+      s.a+=s.d; if(s.a<0.1||s.a>1)s.d*=-1;
+      ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+      ctx.fillStyle=s.c+s.a+')'; ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize',resize);
+  resize(); draw();
+}
+
+// ═══════════════════════════════
+// INIT
+// ═══════════════════════════════
+buildCrystals();
+buildPacks();
+initBG();
+</script>
+</body>
+</html>
